@@ -29,6 +29,17 @@ export default function Home() {
   // 定義特效清單 (用於隨機切換)
   const effectList = ['fade', 'cube', 'coverflow', 'creative', 'cards'];
 
+  
+// 新增一個 state 來存 API 回傳的資料夾名稱
+  const [driveFolderName, setDriveFolderName] = useState(''); 
+
+  const [config, setConfig] = useState({
+    mainTitle: '',
+    subTitle: '',
+    effectType: 'fade'
+  });
+
+  
   useEffect(() => {
     // 1. 讀取 Firestore 設定
     const fetchConfig = async () => {
@@ -51,6 +62,10 @@ export default function Home() {
             .then(res => res.json())
             .then(imgData => {
               if (imgData.images) setImages(imgData.images);
+              
+              // 【修改點】儲存 API 回傳的資料夾名稱
+              if (imgData.folderName) setDriveFolderName(imgData.folderName);
+              
               setLoading(false);
             });
         }
@@ -79,22 +94,26 @@ export default function Home() {
     return <div className="h-screen w-full bg-black flex justify-center items-center text-white text-xl tracking-widest animate-pulse">載入中...</div>;
   }
 
-  return (
+return (
     <div className="h-screen w-full bg-black relative overflow-hidden font-sans">
       
-      {/* --- 裝飾與標題層 (Overlay) --- */}
+      {/* 標題層 */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none z-20 bg-gradient-to-b from-black/60 via-transparent to-black/80">
         <div className="absolute top-8 left-8 text-white drop-shadow-lg">
-          {/* 大標題：增加淡入動畫 */}
+          
           <h1 className="text-4xl md:text-5xl font-bold tracking-wider mb-2 animate-slideDown">
             {config.mainTitle}
           </h1>
-          {/* 中標題：增加底線裝飾 */}
+
           <div className="flex items-center space-x-3">
              <div className="h-1 w-12 bg-yellow-400 rounded"></div>
+             
+             {/* 【關鍵修改點】 這裡做判斷 */}
              <p className="text-xl md:text-2xl font-light text-gray-200 tracking-wide animate-fadeIn">
-               {config.subTitle}
+               {/* 邏輯：如果有設定 subTitle 就用 subTitle，否則用 driveFolderName */}
+               {config.subTitle ? config.subTitle : driveFolderName}
              </p>
+             
           </div>
         </div>
       </div>
