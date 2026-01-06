@@ -10,22 +10,17 @@ export default async function handler(req, res) {
     // 1. 從 Firebase 讀取 Folder ID
     const configRef = doc(db, "settings", "config");
     const configSnap = await getDoc(configRef);
-    const folderId = configSnap.exists() ? configSnap.data().folderId : '19PLjnaiNjxViMFKubKEgTsiVxyJwgvaT';
+    const folderId = configSnap.exists() ? configSnap.data().folderId : '你的預設ID'; // 如果沒設定就用預設
 
     // 2. 驗證 Google 權限
     if (!process.env.GOOGLE_SERVICE_KEY) {
-      throw new Error('Missing GOOGLE_SERVICE_KEY in environment variables');
+      throw new Error('Missing GOOGLE_SERVICE_KEY');
     }
 
-    // --- 關鍵修復區塊 ---
     const credentials = JSON.parse(process.env.GOOGLE_SERVICE_KEY);
-    
-    // 如果私鑰包含文字版的 "\n"，強制轉換為真正的換行符號
-    // 這行程式碼專門解決 ERR_OSSL_UNSUPPORTED 錯誤
     if (credentials.private_key) {
       credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
     }
-    // ------------------
 
     const auth = new google.auth.GoogleAuth({
       credentials,
@@ -33,7 +28,21 @@ export default async function handler(req, res) {
     });
     const drive = google.drive({ version: 'v3', auth });
 
-    // 3. 定義遞歸函數來抓取所有子資料夾的圖片
+    // --- 【修改點 1】新增：獲取資料夾名稱 ---
+    let folderName = "";
+    try {
+      const folderMeta = await drive.files.get({
+        fileId: folderId,
+        fields: 'name', // 只抓名字就好
+      });
+      folderName = folderMeta.data.name;
+    } catch (e) {
+      console.error("無法讀取資料夾名稱", e);
+      folderName = "未知相簿";
+    }
+    // -------------------------------------
+
+    // 3. 抓取圖片邏輯 (保持原本遞歸邏輯)
     let allImages = [];
 
     async function fetchFiles(currentFolderId) {
@@ -41,27 +50,24 @@ export default async function handler(req, res) {
       
       const response = await drive.files.list({
         q: query,
-        fields: 'files(id, name, mimeType, webContentLink, webViewLink)',
+        fields: 'files(id, name, mimeType)',
         pageSize: 1000, 
       });
 
       const files = response.data.files || [];
-      const imageFiles = [];
       const subFolders = [];
 
       files.forEach(file => {
         if (file.mimeType === 'application/vnd.google-apps.folder') {
           subFolders.push(file);
         } else {
-          imageFiles.push({
+          // 使用 lh3 連結
+          allImages.push({
             id: file.id,
-// 強制使用 Google Drive 的直接預覽連結格式
-            url: `https://lh3.googleusercontent.com/d/${file.id}`
+            url: `https://lh3.googleusercontent.com/d/${file.id}` // 修正為正確的 lh3 格式
           });
         }
       });
-
-      allImages = [...allImages, ...imageFiles];
 
       if (subFolders.length > 0) {
         await Promise.all(subFolders.map(folder => fetchFiles(folder.id)));
@@ -70,11 +76,14 @@ export default async function handler(req, res) {
 
     await fetchFiles(folderId);
 
-    res.status(200).json({ images: allImages });
+    // --- 【修改點 2】回傳資料中加入 folderName ---
+    res.status(200).json({ 
+      images: allImages,
+      folderName: folderName // 把名字傳給前端
+    });
 
   } catch (error) {
     console.error("API Error:", error);
-    // 這裡會把詳細錯誤印在終端機，方便除錯
-    res.status(500).json({ error: error.message, details: error.stack });
+    res.status(500).json({ error: error.message });
   }
 }
