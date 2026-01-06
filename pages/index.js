@@ -111,7 +111,7 @@ export default function Home() {
           pagination={{ 
             clickable: true, 
             dynamicBullets: true, 
-            dynamicMainBullets: 10 
+            dynamicMainBullets: 20 
           }}
 
           cubeEffect={{ shadow: true, slideShadows: true, shadowOffset: 20, shadowScale: 0.94 }}
@@ -148,38 +148,38 @@ export default function Home() {
         </Swiper>
       )}
 
-      <style jsx global>{`
-        /* ★★★ 關鍵修正：強制絕對定位 ★★★ */
-        /* 讓圓點浮在畫面上方，不佔據實體空間，徹底解決跳動問題 */
+<style jsx global>{`
+        /* 1. 容器設定：絕對定位 + 水平居中 */
         .swiper-pagination {
           position: absolute !important;
-          bottom: 25px !important; /* 距離底部的距離，可自行調整 */
+          bottom: 25px !important;
           left: 0 !important;
-          width: 100% !important;
-          z-index: 50 !important; /* 確保在圖片上層 */
+          width: 100% !important; /* 佔滿寬度 */
+          z-index: 50 !important;
           pointer-events: auto;
-          display: flex;
-          justify-content: center;
+          display: flex !important; /* 啟用 Flex 佈局 */
+          justify-content: center !important; /* ★★★ 關鍵：讓圓點在中間 ★★★ */
         }
 
-        /* 圓點樣式 */
+        /* 2. 圓點樣式：改為黃色 */
         .swiper-pagination-bullet {
-          background: white !important;
-          opacity: 0.4;
+          background: #fbbf24 !important; /* ★★★ 改成黃色 (原本是 white) ★★★ */
+          opacity: 0.4; /* 未選中時半透明 */
           width: 10px;  
           height: 10px;
-          margin: 0 4px !important; /* 確保圓點間距 */
+          margin: 0 4px !important;
           transition: all 0.3s ease;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.5); /* 加一點陰影讓它在亮色圖片上也看得清楚 */
+          box-shadow: 0 2px 4px rgba(0,0,0,0.5); /* 陰影保留，增加對比度 */
         }
         
-        /* 選中時的樣式 */
+        /* 3. 選中時的樣式 */
         .swiper-pagination-bullet-active {
-          opacity: 1;
-          background: #fbbf24 !important; /* 黃色 */
+          opacity: 1; /* 選中時不透明 */
+          background: #fbbf24 !important; /* 確保選中也是黃色 */
           transform: scale(1.2); 
         }
         
+        /* 動畫樣式保持不變 */
         .ken-burns {
           animation: kenBurns 20s ease-out infinite alternate;
           transform-origin: center center;
