@@ -20,6 +20,7 @@ export default function Admin() {
 
   // 定義特效選項
   const effects = [
+    { id: 'slide', name: '無特效 (普通滑動 + 圓點)' },
     { id: 'fade', name: '淡入淡出 (Fade)' },
     { id: 'cube', name: '3D 方塊 (Cube)' },
     { id: 'coverflow', name: '3D 唱片流 (Coverflow)' },
