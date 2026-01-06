@@ -1,15 +1,14 @@
 // pages/index.js
 import { useEffect, useState } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
-// ★ 引入 Pagination 模組
 import { Navigation, Pagination, Autoplay, EffectFade, EffectCube, EffectCoverflow, EffectCards, EffectCreative } from 'swiper/modules';
 import { db } from '../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 
-// 引入所有需要的 Swiper 樣式
+// 引入樣式
 import 'swiper/css';
 import 'swiper/css/navigation';
-import 'swiper/css/pagination'; // ★ 記得引入圓點樣式
+import 'swiper/css/pagination';
 import 'swiper/css/effect-fade';
 import 'swiper/css/effect-cube';
 import 'swiper/css/effect-coverflow';
@@ -24,7 +23,7 @@ export default function Home() {
   const [config, setConfig] = useState({
     mainTitle: '',
     subTitle: '',
-    effectType: 'slide' // 預設改為 slide
+    effectType: 'slide'
   });
   
   const [currentEffect, setCurrentEffect] = useState('slide');
@@ -42,7 +41,6 @@ export default function Home() {
           if (data.effectType === 'random') {
             setCurrentEffect(effectList[0]);
           } else {
-            // 如果後台選了 slide，這裡就會設定為 slide
             setCurrentEffect(data.effectType || 'slide');
           }
           
@@ -65,15 +63,12 @@ export default function Home() {
   }, []);
 
   const handleSlideChange = (swiper) => {
-    // 1. 隨機特效邏輯
     if (config.effectType === 'random') {
       if (swiper.realIndex > 0 && swiper.realIndex % 10 === 0) {
         const nextEffect = effectList[Math.floor(Math.random() * effectList.length)];
         setCurrentEffect(nextEffect);
       }
     }
-
-    // 2. 資料夾名稱更新邏輯
     const currentImg = images[swiper.realIndex];
     if (currentImg && currentImg.folderName) {
         setDynamicSubtitle(currentImg.folderName);
@@ -112,11 +107,11 @@ export default function Home() {
           centeredSlides={true}
           slidesPerView={1}
           
-          // ★★★ 修改這裡：分頁圓點設定 ★★★
+          // ★ 這裡設定顯示 10 個主要圓點
           pagination={{ 
             clickable: true, 
-            dynamicBullets: true, // 保持動態效果 (讓圓點有大有小)
-            dynamicMainBullets: 10 // ★ 設定中間主要顯示 10 顆圓點 (符合你的需求)
+            dynamicBullets: true, 
+            dynamicMainBullets: 10 
           }}
 
           cubeEffect={{ shadow: true, slideShadows: true, shadowOffset: 20, shadowScale: 0.94 }}
@@ -127,15 +122,14 @@ export default function Home() {
             next: { translate: ['100%', 0, 0] },
           }}
           
-          // ★ 記得把 Pagination 加入 modules
           modules={[Navigation, Pagination, Autoplay, EffectFade, EffectCube, EffectCoverflow, EffectCards, EffectCreative]}
-            
-            loop={true}
-            autoplay={{ delay: 5000, disableOnInteraction: false }} 
-            speed={800} 
-            onSlideChange={handleSlideChange}
-            className="w-full h-full z-10"
-          >
+          
+          loop={true}
+          autoplay={{ delay: 5000, disableOnInteraction: false }} 
+          speed={800} 
+          onSlideChange={handleSlideChange}
+          className="w-full h-full z-10"
+        >
           {images.map((img) => (
             <SwiperSlide key={img.id} className="relative w-full h-full bg-black overflow-hidden">
               <div className="w-full h-full flex items-center justify-center relative">
@@ -154,55 +148,57 @@ export default function Home() {
         </Swiper>
       )}
 
-    <style jsx global>{`
-      /* 絕對定位：讓圓點浮在最下方，不佔據空間 
-         這樣無論圓點怎麼變，都不會影響外框大小
-      */
-      .swiper-pagination {
-        position: absolute !important;
-        bottom: 30px !important; /* 距離底部的高度 */
-        left: 0 !important;
-        width: 100% !important;
-        z-index: 50 !important;
-        pointer-events: auto; /* 確保可以點擊 */
-      }
-    
-      /* 圓點樣式微調 */
-      .swiper-pagination-bullet {
-        background: white !important;
-        opacity: 0.4;
-        width: 10px;  /* 圓點稍微大一點方便點擊 */
-        height: 10px;
-        transition: all 0.3s ease;
-      }
-    
-      .swiper-pagination-bullet-active {
-        opacity: 1;
-        background: #fbbf24 !important; /* 黃色 */
-        transform: scale(1.2); /* 選中時稍微放大 */
-      }
-      
-      /* ... (原本的 ken-burns 等動畫樣式保持不變) ... */
-      .ken-burns {
-        animation: kenBurns 20s ease-out infinite alternate;
-        transform-origin: center center;
-      }
-      @keyframes kenBurns {
-        0% { transform: scale(1); }
-        100% { transform: scale(1.15); }
-      }
-      @keyframes slideDown {
-        from { opacity: 0; transform: translateY(-20px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-      @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-      }
-      .animate-slideDown { animation: slideDown 1s ease-out forwards; }
-      .animate-fadeIn { animation: fadeIn 1.5s ease-out forwards; animation-delay: 0.5s; opacity: 0; }
-    `}</style>
+      <style jsx global>{`
+        /* ★★★ 關鍵修正：強制絕對定位 ★★★ */
+        /* 讓圓點浮在畫面上方，不佔據實體空間，徹底解決跳動問題 */
+        .swiper-pagination {
+          position: absolute !important;
+          bottom: 25px !important; /* 距離底部的距離，可自行調整 */
+          left: 0 !important;
+          width: 100% !important;
+          z-index: 50 !important; /* 確保在圖片上層 */
+          pointer-events: auto;
+          display: flex;
+          justify-content: center;
+        }
+
+        /* 圓點樣式 */
+        .swiper-pagination-bullet {
+          background: white !important;
+          opacity: 0.4;
+          width: 10px;  
+          height: 10px;
+          margin: 0 4px !important; /* 確保圓點間距 */
+          transition: all 0.3s ease;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.5); /* 加一點陰影讓它在亮色圖片上也看得清楚 */
+        }
         
+        /* 選中時的樣式 */
+        .swiper-pagination-bullet-active {
+          opacity: 1;
+          background: #fbbf24 !important; /* 黃色 */
+          transform: scale(1.2); 
+        }
+        
+        .ken-burns {
+          animation: kenBurns 20s ease-out infinite alternate;
+          transform-origin: center center;
+        }
+        @keyframes kenBurns {
+          0% { transform: scale(1); }
+          100% { transform: scale(1.15); }
+        }
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateY(-20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .animate-slideDown { animation: slideDown 1s ease-out forwards; }
+        .animate-fadeIn { animation: fadeIn 1.5s ease-out forwards; animation-delay: 0.5s; opacity: 0; }
+      `}</style>
     </div>
   );
 }
