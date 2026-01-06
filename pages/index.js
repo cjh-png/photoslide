@@ -17,11 +17,15 @@ import 'swiper/css/effect-creative';
 
 export default function Home() {
   const [images, setImages] = useState([]);
+  
+  // 1. 設定狀態
+  const [driveFolderName, setDriveFolderName] = useState(''); // 存 Google Drive 資料夾名稱
   const [config, setConfig] = useState({
     mainTitle: '',
     subTitle: '',
     effectType: 'fade'
   });
+  
   // 用來控制當前實際使用的特效 (因為 Random 模式會一直變)
   const [currentEffect, setCurrentEffect] = useState('fade');
   const [loading, setLoading] = useState(true);
@@ -29,19 +33,8 @@ export default function Home() {
   // 定義特效清單 (用於隨機切換)
   const effectList = ['fade', 'cube', 'coverflow', 'creative', 'cards'];
 
-  
-// 新增一個 state 來存 API 回傳的資料夾名稱
-  const [driveFolderName, setDriveFolderName] = useState(''); 
-
-  const [config, setConfig] = useState({
-    mainTitle: '',
-    subTitle: '',
-    effectType: 'fade'
-  });
-
-  
   useEffect(() => {
-    // 1. 讀取 Firestore 設定
+    // 2. 讀取 Firestore 設定
     const fetchConfig = async () => {
       try {
         const snap = await getDoc(doc(db, "settings", "config"));
@@ -56,14 +49,13 @@ export default function Home() {
             setCurrentEffect(data.effectType || 'fade');
           }
           
-          // 2. 呼叫 API 抓圖片 (使用讀到的 ID，或是 API 內部的預設 ID)
-          // 這裡我們稍微修改邏輯，雖然 API 會讀 ID，但為了確保同步，我們這裡只負責觸發
+          // 3. 呼叫 API 抓圖片 (同時抓取資料夾名稱)
           fetch('/api/getImages') 
             .then(res => res.json())
             .then(imgData => {
               if (imgData.images) setImages(imgData.images);
               
-              // 【修改點】儲存 API 回傳的資料夾名稱
+              // 【關鍵】：如果 API 有回傳資料夾名稱，就存起來
               if (imgData.folderName) setDriveFolderName(imgData.folderName);
               
               setLoading(false);
@@ -94,7 +86,7 @@ export default function Home() {
     return <div className="h-screen w-full bg-black flex justify-center items-center text-white text-xl tracking-widest animate-pulse">載入中...</div>;
   }
 
-return (
+  return (
     <div className="h-screen w-full bg-black relative overflow-hidden font-sans">
       
       {/* 標題層 */}
@@ -102,15 +94,14 @@ return (
         <div className="absolute top-8 left-8 text-white drop-shadow-lg">
           
           <h1 className="text-4xl md:text-5xl font-bold tracking-wider mb-2 animate-slideDown">
-            {config.mainTitle}
+            {config.mainTitle || '相簿展示'}
           </h1>
 
           <div className="flex items-center space-x-3">
              <div className="h-1 w-12 bg-yellow-400 rounded"></div>
              
-             {/* 【關鍵修改點】 這裡做判斷 */}
+             {/* 【邏輯判斷】如果 config.subTitle 有值就顯示，否則顯示 Google Drive 資料夾名稱 */}
              <p className="text-xl md:text-2xl font-light text-gray-200 tracking-wide animate-fadeIn">
-               {/* 邏輯：如果有設定 subTitle 就用 subTitle，否則用 driveFolderName */}
                {config.subTitle ? config.subTitle : driveFolderName}
              </p>
              
