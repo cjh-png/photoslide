@@ -112,10 +112,11 @@ export default function Home() {
           centeredSlides={true}
           slidesPerView={1}
           
-          // ★★★ 新增：分頁圓點設定 ★★★
+          // ★★★ 修改這裡：分頁圓點設定 ★★★
           pagination={{ 
-            clickable: true, // 允許點擊圓點切換
-            dynamicBullets: true // 圖片太多時，圓點會自動變大小，比較美觀
+            clickable: true, 
+            dynamicBullets: true, // 保持動態效果 (讓圓點有大有小)
+            dynamicMainBullets: 10 // ★ 設定中間主要顯示 10 顆圓點 (符合你的需求)
           }}
 
           cubeEffect={{ shadow: true, slideShadows: true, shadowOffset: 20, shadowScale: 0.94 }}
@@ -128,13 +129,13 @@ export default function Home() {
           
           // ★ 記得把 Pagination 加入 modules
           modules={[Navigation, Pagination, Autoplay, EffectFade, EffectCube, EffectCoverflow, EffectCards, EffectCreative]}
-          
-          loop={true}
-          autoplay={{ delay: 5000, disableOnInteraction: false }} 
-          speed={800} // 普通滑動速度稍微快一點點比較自然
-          onSlideChange={handleSlideChange}
-          className="w-full h-full z-10"
-        >
+            
+            loop={true}
+            autoplay={{ delay: 5000, disableOnInteraction: false }} 
+            speed={800} 
+            onSlideChange={handleSlideChange}
+            className="w-full h-full z-10"
+          >
           {images.map((img) => (
             <SwiperSlide key={img.id} className="relative w-full h-full bg-black overflow-hidden">
               <div className="w-full h-full flex items-center justify-center relative">
@@ -153,36 +154,55 @@ export default function Home() {
         </Swiper>
       )}
 
-      <style jsx global>{`
-        /* 調整圓點顏色 (預設是藍色，這裡改為白色以適應黑色背景) */
-        .swiper-pagination-bullet {
-          background: white !important;
-          opacity: 0.5;
-        }
-        .swiper-pagination-bullet-active {
-          opacity: 1;
-          background: #fbbf24 !important; /* 選中時變成黃色 (搭配標題底線) */
-        }
+    <style jsx global>{`
+      /* 絕對定位：讓圓點浮在最下方，不佔據空間 
+         這樣無論圓點怎麼變，都不會影響外框大小
+      */
+      .swiper-pagination {
+        position: absolute !important;
+        bottom: 30px !important; /* 距離底部的高度 */
+        left: 0 !important;
+        width: 100% !important;
+        z-index: 50 !important;
+        pointer-events: auto; /* 確保可以點擊 */
+      }
+    
+      /* 圓點樣式微調 */
+      .swiper-pagination-bullet {
+        background: white !important;
+        opacity: 0.4;
+        width: 10px;  /* 圓點稍微大一點方便點擊 */
+        height: 10px;
+        transition: all 0.3s ease;
+      }
+    
+      .swiper-pagination-bullet-active {
+        opacity: 1;
+        background: #fbbf24 !important; /* 黃色 */
+        transform: scale(1.2); /* 選中時稍微放大 */
+      }
+      
+      /* ... (原本的 ken-burns 等動畫樣式保持不變) ... */
+      .ken-burns {
+        animation: kenBurns 20s ease-out infinite alternate;
+        transform-origin: center center;
+      }
+      @keyframes kenBurns {
+        0% { transform: scale(1); }
+        100% { transform: scale(1.15); }
+      }
+      @keyframes slideDown {
+        from { opacity: 0; transform: translateY(-20px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      .animate-slideDown { animation: slideDown 1s ease-out forwards; }
+      .animate-fadeIn { animation: fadeIn 1.5s ease-out forwards; animation-delay: 0.5s; opacity: 0; }
+    `}</style>
         
-        .ken-burns {
-          animation: kenBurns 20s ease-out infinite alternate;
-          transform-origin: center center;
-        }
-        @keyframes kenBurns {
-          0% { transform: scale(1); }
-          100% { transform: scale(1.15); }
-        }
-        @keyframes slideDown {
-          from { opacity: 0; transform: translateY(-20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        .animate-slideDown { animation: slideDown 1s ease-out forwards; }
-        .animate-fadeIn { animation: fadeIn 1.5s ease-out forwards; animation-delay: 0.5s; opacity: 0; }
-      `}</style>
     </div>
   );
 }
