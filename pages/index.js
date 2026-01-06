@@ -1,13 +1,15 @@
 // pages/index.js
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
+// ★ 引入 Pagination 模組
 import { Navigation, Pagination, Autoplay, EffectFade, EffectCube, EffectCoverflow, EffectCards, EffectCreative } from 'swiper/modules';
 import { db } from '../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 
+// 引入所有需要的 Swiper 樣式
 import 'swiper/css';
 import 'swiper/css/navigation';
-import 'swiper/css/pagination';
+import 'swiper/css/pagination'; // ★ 記得引入圓點樣式
 import 'swiper/css/effect-fade';
 import 'swiper/css/effect-cube';
 import 'swiper/css/effect-coverflow';
@@ -17,15 +19,15 @@ import 'swiper/css/effect-creative';
 export default function Home() {
   const [images, setImages] = useState([]);
   
-  // 1. 設定狀態
-  const [dynamicSubtitle, setDynamicSubtitle] = useState(''); // 用來存當前顯示的子標題
+  // 設定狀態
+  const [dynamicSubtitle, setDynamicSubtitle] = useState(''); 
   const [config, setConfig] = useState({
     mainTitle: '',
     subTitle: '',
-    effectType: 'fade'
+    effectType: 'slide' // 預設改為 slide
   });
   
-  const [currentEffect, setCurrentEffect] = useState('fade');
+  const [currentEffect, setCurrentEffect] = useState('slide');
   const [loading, setLoading] = useState(true);
   const effectList = ['fade', 'cube', 'coverflow', 'creative', 'cards'];
 
@@ -40,7 +42,8 @@ export default function Home() {
           if (data.effectType === 'random') {
             setCurrentEffect(effectList[0]);
           } else {
-            setCurrentEffect(data.effectType || 'fade');
+            // 如果後台選了 slide，這裡就會設定為 slide
+            setCurrentEffect(data.effectType || 'slide');
           }
           
           fetch('/api/getImages') 
@@ -48,7 +51,6 @@ export default function Home() {
             .then(imgData => {
               if (imgData.images && imgData.images.length > 0) {
                 setImages(imgData.images);
-                // 預設先顯示第一張圖的資料夾名稱
                 setDynamicSubtitle(imgData.images[0].folderName);
               }
               setLoading(false);
@@ -62,9 +64,8 @@ export default function Home() {
     fetchConfig();
   }, []);
 
-  // ★★★ 關鍵修改：處理切換邏輯 ★★★
   const handleSlideChange = (swiper) => {
-    // 1. 處理特效隨機切換
+    // 1. 隨機特效邏輯
     if (config.effectType === 'random') {
       if (swiper.realIndex > 0 && swiper.realIndex % 10 === 0) {
         const nextEffect = effectList[Math.floor(Math.random() * effectList.length)];
@@ -72,8 +73,7 @@ export default function Home() {
       }
     }
 
-    // 2. 處理動態標題 (獲取當前照片的 folderName)
-    // swiper.realIndex 是在 Loop 模式下正確的索引值
+    // 2. 資料夾名稱更新邏輯
     const currentImg = images[swiper.realIndex];
     if (currentImg && currentImg.folderName) {
         setDynamicSubtitle(currentImg.folderName);
@@ -90,19 +90,14 @@ export default function Home() {
       {/* 標題層 */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none z-20 bg-gradient-to-b from-black/60 via-transparent to-black/80">
         <div className="absolute top-8 left-8 text-white drop-shadow-lg">
-          
           <h1 className="text-4xl md:text-5xl font-bold tracking-wider mb-2 animate-slideDown">
             {config.mainTitle || '相簿展示'}
           </h1>
-
           <div className="flex items-center space-x-3">
              <div className="h-1 w-12 bg-yellow-400 rounded"></div>
-             
-             {/* ★★★ 邏輯：優先顯示後台設定的 SubTitle，如果留空，則顯示當前照片的資料夾名稱 ★★★ */}
              <p className="text-xl md:text-2xl font-light text-gray-200 tracking-wide animate-fadeIn">
                {config.subTitle ? config.subTitle : dynamicSubtitle}
              </p>
-             
           </div>
         </div>
       </div>
@@ -117,6 +112,12 @@ export default function Home() {
           centeredSlides={true}
           slidesPerView={1}
           
+          // ★★★ 新增：分頁圓點設定 ★★★
+          pagination={{ 
+            clickable: true, // 允許點擊圓點切換
+            dynamicBullets: true // 圖片太多時，圓點會自動變大小，比較美觀
+          }}
+
           cubeEffect={{ shadow: true, slideShadows: true, shadowOffset: 20, shadowScale: 0.94 }}
           coverflowEffect={{ rotate: 50, stretch: 0, depth: 100, modifier: 1, slideShadows: true }}
           cardsEffect={{ slideShadows: true }}
@@ -125,12 +126,13 @@ export default function Home() {
             next: { translate: ['100%', 0, 0] },
           }}
           
+          // ★ 記得把 Pagination 加入 modules
           modules={[Navigation, Pagination, Autoplay, EffectFade, EffectCube, EffectCoverflow, EffectCards, EffectCreative]}
           
           loop={true}
           autoplay={{ delay: 5000, disableOnInteraction: false }} 
-          speed={1000}
-          onSlideChange={handleSlideChange} // 綁定切換事件
+          speed={800} // 普通滑動速度稍微快一點點比較自然
+          onSlideChange={handleSlideChange}
           className="w-full h-full z-10"
         >
           {images.map((img) => (
@@ -138,7 +140,7 @@ export default function Home() {
               <div className="w-full h-full flex items-center justify-center relative">
                 <img 
                   src={img.url} 
-                  alt={img.folderName} // 也可以把資料夾名稱放在 alt 屬性方便除錯
+                  alt={img.folderName}
                   referrerPolicy="no-referrer"
                   className="max-w-full max-h-full object-contain ken-burns"
                   style={{
@@ -152,6 +154,16 @@ export default function Home() {
       )}
 
       <style jsx global>{`
+        /* 調整圓點顏色 (預設是藍色，這裡改為白色以適應黑色背景) */
+        .swiper-pagination-bullet {
+          background: white !important;
+          opacity: 0.5;
+        }
+        .swiper-pagination-bullet-active {
+          opacity: 1;
+          background: #fbbf24 !important; /* 選中時變成黃色 (搭配標題底線) */
+        }
+        
         .ken-burns {
           animation: kenBurns 20s ease-out infinite alternate;
           transform-origin: center center;
