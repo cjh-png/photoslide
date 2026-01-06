@@ -7,12 +7,10 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).end();
 
   try {
-    // 1. 從 Firebase 讀取 Folder ID
     const configRef = doc(db, "settings", "config");
     const configSnap = await getDoc(configRef);
-    const folderId = configSnap.exists() ? configSnap.data().folderId : ''; 
+    const folderId = configSnap.exists() ? configSnap.data().folderId : '';
 
-    // 2. 驗證 Google 權限
     if (!process.env.GOOGLE_SERVICE_KEY) {
       throw new Error('Missing GOOGLE_SERVICE_KEY');
     }
@@ -28,26 +26,25 @@ export default async function handler(req, res) {
     });
     const drive = google.drive({ version: 'v3', auth });
 
-    // --- 【新增功能】獲取資料夾名稱 ---
-    let folderName = "";
+    // 1. 先抓根目錄的名字
+    let rootFolderName = "";
     if (folderId) {
-        try {
+      try {
         const folderMeta = await drive.files.get({
-            fileId: folderId,
-            fields: 'name', // 只抓名字就好
+          fileId: folderId,
+          fields: 'name',
         });
-        folderName = folderMeta.data.name;
-        } catch (e) {
+        rootFolderName = folderMeta.data.name;
+      } catch (e) {
         console.error("無法讀取資料夾名稱", e);
-        folderName = "相簿";
-        }
+        rootFolderName = "相簿";
+      }
     }
-    // -------------------------------------
 
-    // 3. 抓取圖片邏輯
     let allImages = [];
 
-    async function fetchFiles(currentFolderId) {
+    // 2. 修改遞歸函數，多接收一個 currentFolderName 參數
+    async function fetchFiles(currentFolderId, currentFolderName) {
       if (!currentFolderId) return;
 
       const query = `'${currentFolderId}' in parents and (mimeType contains 'image/' or mimeType = 'application/vnd.google-apps.folder') and trashed = false`;
@@ -63,28 +60,30 @@ export default async function handler(req, res) {
 
       files.forEach(file => {
         if (file.mimeType === 'application/vnd.google-apps.folder') {
+          // 如果是資料夾，把它存起來，稍後遞歸處理
           subFolders.push(file);
         } else {
-          // 【修正重點】這裡修復了語法錯誤，並使用 HTTPS
+          // ★★★ 關鍵修改：把目前的資料夾名稱 (currentFolderName) 寫入圖片物件
           allImages.push({
             id: file.id,
-            // 注意這裡多了 $ 符號，且網址改為標準 lh3 格式
-            url: `https://lh3.googleusercontent.com/d/${file.id}` 
+            url: `https://lh3.googleusercontent.com/d/${file.id}`, // 修正為標準 HTTPS lh3 連結
+            folderName: currentFolderName // 這裡記錄這張照片屬於哪個資料夾
           });
         }
       });
 
+      // 遞歸處理子資料夾，把子資料夾的名字 (folder.name) 傳下去
       if (subFolders.length > 0) {
-        await Promise.all(subFolders.map(folder => fetchFiles(folder.id)));
+        await Promise.all(subFolders.map(folder => fetchFiles(folder.id, folder.name)));
       }
     }
 
-    await fetchFiles(folderId);
+    // 開始抓取，初始傳入根目錄 ID 和 根目錄名字
+    await fetchFiles(folderId, rootFolderName);
 
-    // 回傳資料
+    // 這裡只需要回傳圖片陣列，因為圖片裡面已經包含 folderName 了
     res.status(200).json({ 
-      images: allImages,
-      folderName: folderName // 回傳資料夾名稱
+      images: allImages 
     });
 
   } catch (error) {
